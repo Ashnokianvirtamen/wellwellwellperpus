@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Sistem Perpustakaan - Home</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="container">
+        <div class="header-content">
+          <div class="header-text">
+            <h1 class="school">SMA Negeri ......</h1>
+            <p class="address"><i class="fas fa-location-dot"></i> Jl. Contoh No. 123, Kota Contoh</p>
+          </div>
+          <button id="theme-toggle" class="theme-toggle" title="Ubah tema gelap/terang">
+            <i class="fas fa-moon"></i>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <nav class="main-nav container">
+      <button id="btn-pengunjung" class="nav-btn glass-effect"><i class="fas fa-user-plus"></i> Input Pengunjung</button>
+      <button id="btn-buku" class="nav-btn glass-effect"><i class="fas fa-book-medical"></i> Input Buku</button>
+      <button id="btn-cari" class="nav-btn glass-effect"><i class="fas fa-search"></i> Sistem Pencarian</button>
+    </nav>
+
+    <main class="container">
+      <section class="search-section glass-card" id="search-section">
+        <h2><i class="fas fa-book-open"></i> Pencarian Buku</h2>
+        <div class="search-box glass-effect">
+          <i class="fas fa-magnifying-glass search-icon"></i>
+          <input id="search-input" type="search" placeholder="Cari kode, judul, penerbit, atau tahun..." />
+          <button id="search-btn" class="btn-modern">Cari</button>
+        </div>
+        <ul id="books-list" class="books-list">
+          <!-- Daftar buku akan dirender otomatis dari localStorage -->
+        </ul>
+      </section>
+
+      <section class="info" id="info">
+        <h2>Selamat datang di Sistem Perpustakaan</h2>
+        <p>Gunakan tombol di atas untuk menginput data pengunjung, menambah buku baru, atau mencari koleksi perpustakaan.</p>
+      </section>
+
+      <section class="visitors-section" id="visitors-section">
+        <h2>Daftar Pengunjung (Terakhir)</h2>
+        <ul id="visitors-list" class="books-list small-list">
+          <!-- akan diisi dari localStorage -->
+        </ul>
+      </section>
+    </main>
+
+    <!-- Modal Input Pengunjung (fullscreen) -->
+    <div id="modal-pengunjung" class="modal fullscreen hidden">
+      <div class="modal-content">
+        <header class="modal-header">
+          <h3>Input Pengunjung</h3>
+          <button type="button" class="close-btn" aria-label="Tutup">✕</button>
+        </header>
+        <form id="form-pengunjung" class="modal-form">
+          <div class="field">
+            <label class="label-text">Nama:</label>
+            <input name="nama" required />
+          </div>
+          <div class="field">
+            <label class="label-text">Kelas:</label>
+            <input name="kelas" />
+          </div>
+          <div class="modal-actions">
+            <button type="submit" class="btn-primary">Simpan</button>
+            <button type="button" class="close-btn">Batal</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Modal Input Buku (fullscreen) -->
+    <div id="modal-buku" class="modal fullscreen hidden">
+      <div class="modal-content">
+        <header class="modal-header">
+          <h3>Input Buku</h3>
+          <button type="button" class="close-btn" aria-label="Tutup">✕</button>
+        </header>
+        <form id="form-buku" class="modal-form">
+          <div class="field">
+            <label class="label-text">KODE:</label>
+            <input name="kode" required />
+          </div>
+          <div class="field">
+            <label class="label-text">JUDUL:</label>
+            <input name="judul" required />
+          </div>
+          <div class="field">
+            <label class="label-text">PENERBIT:</label>
+            <input name="penerbit" />
+          </div>
+          <div class="field">
+            <label class="label-text">TAHUN TERBIT:</label>
+            <input name="tahun" type="number" min="0" />
+          </div>
+          <div class="field">
+            <label class="label-text">MASUK:</label>
+            <input name="masuk" type="date" />
+          </div>
+          <div class="modal-actions">
+            <button type="submit" class="btn-primary">Simpan</button>
+            <button type="button" class="close-btn">Batal</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Toast container untuk notifikasi kecil -->
+    <div id="toast-container" aria-live="polite"></div>
+
+    <script src="script.js"></script>
+  </body>
+</html>
