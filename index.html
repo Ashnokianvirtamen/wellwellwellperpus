@@ -23,7 +23,7 @@
     </header>
 
     <nav class="main-nav container">
-      <button id="btn-pengunjung" class="nav-btn glass-effect"><i class="fas fa-user-plus"></i> Input Pengunjung</button>
+      <button id="btn-pengunjung" class="nav-btn glass-effect"><i class="fas fa-user-plus"></i> Login Pengunjung</button>
       <button id="btn-buku" class="nav-btn glass-effect"><i class="fas fa-book-medical"></i> Input Buku</button>
       <button id="btn-cari" class="nav-btn glass-effect"><i class="fas fa-search"></i> Sistem Pencarian</button>
     </nav>
@@ -54,27 +54,43 @@
       </section>
     </main>
 
-    <!-- Modal Input Pengunjung (fullscreen) -->
+    <!-- Modal Input Pengunjung (Login) -->
     <div id="modal-pengunjung" class="modal fullscreen hidden">
       <div class="modal-content">
         <header class="modal-header">
-          <h3>Input Pengunjung</h3>
+          <h3 id="modal-title">Login Pengunjung</h3>
           <button type="button" class="close-btn" aria-label="Tutup">✕</button>
         </header>
-        <form id="form-pengunjung" class="modal-form">
-          <div class="field">
-            <label class="label-text">Nama:</label>
-            <input name="nama" required />
+        <div id="login-section" class="modal-form">
+          <form id="form-pengunjung">
+            <div class="field">
+              <label class="label-text">Nama:</label>
+              <input id="pengunjung-nama" name="nama" placeholder="Masukkan nama Anda..." required />
+              <ul id="pengunjung-list" style="list-style:none;padding:0;margin:8px 0;max-height:150px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;background:var(--card)"></ul>
+            </div>
+            <div class="field">
+              <label class="label-text">Kelas:</label>
+              <input id="pengunjung-kelas" name="kelas" placeholder="(Opsional)" />
+            </div>
+            <div class="modal-actions">
+              <button type="submit" class="btn-primary">Login / Daftar</button>
+              <button type="button" class="close-btn">Batal</button>
+            </div>
+          </form>
+        </div>
+
+        <!-- Menu Pilihan setelah login -->
+        <div id="menu-section" class="modal-form hidden">
+          <div style="text-align:center;padding:20px">
+            <h2>Selamat datang, <span id="user-nama"></span>!</h2>
+            <p>Pilih aksi yang ingin Anda lakukan:</p>
           </div>
-          <div class="field">
-            <label class="label-text">Kelas:</label>
-            <input name="kelas" />
+          <div style="display:flex;flex-direction:column;gap:12px;margin:20px 0">
+            <button id="btn-menu-pinjam" class="btn-modern" style="padding:16px;font-size:1.1rem"><i class="fas fa-hand-holding-heart"></i> Pinjam Buku</button>
+            <button id="btn-menu-kembali" class="btn-modern" style="padding:16px;font-size:1.1rem"><i class="fas fa-undo"></i> Kembalikan Buku</button>
+            <button id="btn-logout" class="btn-modern" style="padding:16px;font-size:1.1rem;background:linear-gradient(90deg,#ef4444,#dc2626)"><i class="fas fa-sign-out-alt"></i> Logout</button>
           </div>
-          <div class="modal-actions">
-            <button type="submit" class="btn-primary">Simpan</button>
-            <button type="button" class="close-btn">Batal</button>
-          </div>
-        </form>
+        </div>
       </div>
     </div>
 
@@ -108,6 +124,78 @@
           </div>
           <div class="modal-actions">
             <button type="submit" class="btn-primary">Simpan</button>
+            <button type="button" class="close-btn">Batal</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Modal Peminjaman Buku (fullscreen) -->
+    <div id="modal-pinjam" class="modal fullscreen hidden">
+      <div class="modal-content">
+        <header class="modal-header">
+          <h3>Peminjaman Buku</h3>
+          <button type="button" class="close-btn" aria-label="Tutup">✕</button>
+        </header>
+        <form id="form-pinjam" class="modal-form">
+          <div class="field">
+            <label class="label-text">Peminjam: <strong id="pinjam-user-nama"></strong></label>
+          </div>
+          <div class="field">
+            <label class="label-text">Cari Buku (Tersedia):</label>
+            <input id="pinjam-cari" type="text" placeholder="Ketik nama atau kode buku..." />
+            <ul id="pinjam-buku-list" style="list-style:none;padding:0;margin:8px 0;border:1px solid var(--border);border-radius:6px;max-height:200px;overflow-y:auto;display:none"></ul>
+            <input id="pinjam-buku" name="buku_id" type="hidden" />
+            <div id="pinjam-buku-selected" style="margin-top:8px;padding:8px;background:var(--card);border-radius:6px;display:none;font-size:0.9rem"></div>
+          </div>
+          <div class="field">
+            <label class="label-text">Durasi Peminjaman (hari):</label>
+            <input id="pinjam-durasi" name="durasi" type="number" min="1" value="7" required />
+          </div>
+          <div class="field" id="buku-info" style="padding:12px;background:var(--glass);border-radius:8px;display:none">
+            <strong>Info Buku:</strong>
+            <p id="buku-detail" style="margin:6px 0;font-size:0.9rem"></p>
+          </div>
+          <div class="modal-actions">
+            <button type="submit" class="btn-primary">Pinjam</button>
+            <button type="button" class="close-btn">Batal</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Modal Pengembalian Buku (fullscreen) -->
+    <div id="modal-kembali" class="modal fullscreen hidden">
+      <div class="modal-content">
+        <header class="modal-header">
+          <h3>Pengembalian Buku</h3>
+          <button type="button" class="close-btn" aria-label="Tutup">✕</button>
+        </header>
+        <form id="form-kembali" class="modal-form">
+          <div class="field">
+            <label class="label-text">Peminjam: <strong id="kembali-user-nama"></strong></label>
+          </div>
+          <div class="field">
+            <label class="label-text">Cari Buku yang Dipinjam:</label>
+            <input id="kembali-cari" type="text" placeholder="Ketik nama atau kode buku..." />
+            <ul id="kembali-pinjam-list" style="list-style:none;padding:0;margin:8px 0;border:1px solid var(--border);border-radius:6px;max-height:200px;overflow-y:auto;display:none"></ul>
+            <input id="kembali-pinjam" name="peminjaman_id" type="hidden" />
+            <div id="kembali-pinjam-selected" style="margin-top:8px;padding:8px;background:var(--card);border-radius:6px;display:none;font-size:0.9rem"></div>
+          </div>
+          <div class="field" id="pinjam-detail-info" style="padding:12px;background:var(--glass);border-radius:8px;display:none">
+            <strong>Detail Peminjaman:</strong>
+            <p id="pinjam-detail-text" style="margin:6px 0;font-size:0.9rem"></p>
+          </div>
+          <div class="field">
+            <label class="label-text">Tanggal Kembali:</label>
+            <input id="kembali-tanggal" name="tanggal_kembali" type="date" required />
+          </div>
+          <div class="field" id="denda-info" style="padding:12px;background:var(--glass);border-radius:8px;display:none">
+            <strong>Perhitungan Denda:</strong>
+            <p id="denda-text" style="margin:6px 0;font-size:0.9rem;color:var(--primary)"></p>
+          </div>
+          <div class="modal-actions">
+            <button type="submit" class="btn-primary">Kembalikan</button>
             <button type="button" class="close-btn">Batal</button>
           </div>
         </form>
