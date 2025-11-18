@@ -23,7 +23,9 @@ npm install
 
 2. Jalankan server:
 ```bash
+#########
 node server.js
+
 # Development mode dengan auto-reload
 npm run dev
 
@@ -122,3 +124,4 @@ npm start
 - Login tersimpan dalam localStorage browser
 - Reload halaman → tetap login tanpa perlu masuk ulang
 - Logout → hapus login dari localStorage dan kembali ke form login
+
