@@ -26,7 +26,7 @@ npm install
 #########
 node server.js
 
-# Development mode dengan auto-reload
+# Development mode
 npm run dev
 
 # Production mode
@@ -124,4 +124,5 @@ npm start
 - Login tersimpan dalam localStorage browser
 - Reload halaman → tetap login tanpa perlu masuk ulang
 - Logout → hapus login dari localStorage dan kembali ke form login
+
 
