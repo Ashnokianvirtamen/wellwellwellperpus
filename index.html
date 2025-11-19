@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Sistem Perpustakaan - Home</title>
+    <title>- Home Perpustakaan</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" />
     <link rel="stylesheet" href="styles.css" />
   </head>
@@ -12,8 +12,8 @@
       <div class="container">
         <div class="header-content">
           <div class="header-text">
-            <h1 class="school">SMA Negeri ......</h1>
-            <p class="address"><i class="fas fa-location-dot"></i> Jl. Contoh No. 123, Kota Contoh</p>
+            <h1 class="school">SMA Negeri 1 Hokkaido</h1>
+            <p class="address"><i class="fas fa-location-dot"></i> 276-1192, Kuzurehama, Rausu-cho Menashi-gun, Hokkaido</p>
           </div>
           <button id="theme-toggle" class="theme-toggle" title="Ubah tema gelap/terang">
             <i class="fas fa-moon"></i>
@@ -37,7 +37,7 @@
           <button id="search-btn" class="btn-modern">Cari</button>
         </div>
         <ul id="books-list" class="books-list">
-          <!-- Daftar buku akan dirender otomatis dari localStorage -->
+          
         </ul>
       </section>
 
@@ -49,12 +49,12 @@
       <section class="visitors-section" id="visitors-section">
         <h2>Daftar Pengunjung (Terakhir)</h2>
         <ul id="visitors-list" class="books-list small-list">
-          <!-- akan diisi dari localStorage -->
+          
         </ul>
       </section>
     </main>
 
-    <!-- Modal Input Pengunjung (Login) -->
+    <!-- (Login) -->
     <div id="modal-pengunjung" class="modal fullscreen hidden">
       <div class="modal-content">
         <header class="modal-header">
@@ -79,7 +79,6 @@
           </form>
         </div>
 
-        <!-- Menu Pilihan setelah login -->
         <div id="menu-section" class="modal-form hidden">
           <div style="text-align:center;padding:20px">
             <h2>Selamat datang, <span id="user-nama"></span>!</h2>
@@ -94,7 +93,7 @@
       </div>
     </div>
 
-    <!-- Modal Input Buku (fullscreen) -->
+    <!-- Input Buku -->
     <div id="modal-buku" class="modal fullscreen hidden">
       <div class="modal-content">
         <header class="modal-header">
@@ -130,7 +129,7 @@
       </div>
     </div>
 
-    <!-- Modal Peminjaman Buku (fullscreen) -->
+    <!-- Peminjaman Buku -->
     <div id="modal-pinjam" class="modal fullscreen hidden">
       <div class="modal-content">
         <header class="modal-header">
@@ -164,7 +163,7 @@
       </div>
     </div>
 
-    <!-- Modal Pengembalian Buku (fullscreen) -->
+    <!-- Pengembalian Buku -->
     <div id="modal-kembali" class="modal fullscreen hidden">
       <div class="modal-content">
         <header class="modal-header">
@@ -202,7 +201,6 @@
       </div>
     </div>
 
-    <!-- Toast container untuk notifikasi kecil -->
     <div id="toast-container" aria-live="polite"></div>
 
     <script src="script.js"></script>

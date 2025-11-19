@@ -1,8 +1,8 @@
-// Frontend that reads/writes the Node.js/SQLite backend API
+// sqlite
 document.addEventListener('DOMContentLoaded', function(){
   const API_URL = 'http://localhost:3000/api';
 
-  // Theme setup
+  
   const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
   const savedTheme = localStorage.getItem('theme');
   if(savedTheme === 'dark' || (!savedTheme && prefersDark)){
@@ -18,8 +18,7 @@ document.addEventListener('DOMContentLoaded', function(){
   const btnBuku = document.getElementById('btn-buku');
   const btnCari = document.getElementById('btn-cari');
   
-  let currentUser = null; // Track user yang sedang login
-  // restore login from previous session if present
+  let currentUser = null; 
   try {
     const saved = localStorage.getItem('currentUser');
     if (saved) {
@@ -82,11 +81,15 @@ document.addEventListener('DOMContentLoaded', function(){
     try{ const res = await fetch(`${API_URL}/peminjaman`); if(!res.ok) throw await res.json(); return await res.json(); }catch(err){ showToast(err.error||err.message||'Gagal ambil riwayat','error'); return []; }
   }
 
-  // ---------- rendering ----------
+  
   async function renderBooks(filter){
     const books = await fetchBooks(filter);
     booksListEl.innerHTML = '';
-    books.forEach(b => {
+
+    
+    const displayBooks = (!filter || String(filter).trim() === '') ? books.slice(0,5) : books;
+
+    displayBooks.forEach(b => {
       const li = document.createElement('li'); li.className='book-item';
       const left = document.createElement('div'); left.className='book-left';
       const title = document.createElement('div'); title.innerHTML = highlightText(`${b.kode} — ${b.judul}`, filter);
@@ -115,35 +118,41 @@ document.addEventListener('DOMContentLoaded', function(){
   function highlightText(text, q){ if(!q) return escapeHtml(text); const esc = q.replace(/[.*+?^${}()|[\\]\\]/g,'\\$&'); return escapeHtml(text).replace(new RegExp(esc,'ig'), m=>`<mark>${m}</mark>`); }
   function escapeHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
-  // ---------- borrow flow ----------
+  
   async function onBorrowClick(book){
-    // ask for anggota id or nama
-    const input = prompt('Masukkan ID anggota (angka) atau nama anggota baru:');
-    if(!input) return;
-    let anggotaId = null;
-    if(/^[0-9]+$/.test(input.trim())){
-      anggotaId = Number(input.trim());
-    } else {
-      // create new anggota
-      const id = await addVisitorAPI({nama: input.trim(), kelas: ''});
-      if(!id) return; anggotaId = id;
+    if(!currentUser){
+      showToast('Silakan login terlebih dahulu','error');
+      return;
     }
-
-    const ok = await borrowBookAPI(book.id, anggotaId);
-    if(ok){ renderBooks(searchInput.value); renderVisitors(); }
+    
+   
+    openModal(modalPinjam);
+    
+    await setupPinjamForm();
+    
+    setTimeout(()=>{
+      const bukuIdInput = document.getElementById('pinjam-buku');
+      const bukuSelected = document.getElementById('pinjam-buku-selected');
+      bukuIdInput.value = book.id;
+      bukuSelected.innerHTML = `<strong>${book.kode}</strong> - ${book.judul} (${book.tahun}) <span style="color:var(--muted)">✓</span>`;
+      bukuSelected.style.display = 'block';
+      document.getElementById('buku-detail').textContent = `${book.kode} - ${book.judul}\n${book.penerbit} (${book.tahun})`;
+      document.getElementById('buku-info').style.display = 'block';
+      document.getElementById('pinjam-cari').value = '';
+      document.getElementById('pinjam-buku-list').innerHTML = '';
+      document.getElementById('pinjam-buku-list').style.display = 'none';
+    }, 150);
   }
 
-  // ---------- UI utilities ----------
+  
   function showToast(message, type=''){
     const t = document.createElement('div'); t.className='toast '+(type||''); t.textContent = message; toastContainer.appendChild(t);
     setTimeout(()=>{ t.style.opacity='0'; t.addEventListener('transitionend', ()=> t.remove()); t.style.transition='opacity .25s'; }, 2500);
     setTimeout(()=>{ if(t.parentNode) t.remove(); }, 3600);
   }
 
-  // ---------- modal helpers & events ----------
   function openModal(modal){ modal.classList.remove('hidden'); const first = modal.querySelector('input,select,textarea'); if(first) setTimeout(()=> first.focus(),120); }
   function closeModal(modal){ modal.classList.add('hidden'); }
-  // Menu buttons for after login
   const btnMenuPinjam = document.getElementById('btn-menu-pinjam');
   const btnMenuKembali = document.getElementById('btn-menu-kembali');
   const btnLogout = document.getElementById('btn-logout');
@@ -162,7 +171,6 @@ document.addEventListener('DOMContentLoaded', function(){
   }
 
   btnPeng.addEventListener('click', ()=> {
-    // Open pengunjung modal: if already logged in show menu, otherwise show login form
     openModal(modalPeng);
     if (currentUser) { showMenuSection(currentUser); }
     else { showLoginSection(); }
@@ -178,7 +186,6 @@ document.addEventListener('DOMContentLoaded', function(){
     showLoginSection();
   });
   
-  // Initialize modal state based on login restore
   if (currentUser) {
     showMenuSection(currentUser);
   } else {
@@ -189,7 +196,7 @@ document.addEventListener('DOMContentLoaded', function(){
   document.addEventListener('keydown', e=>{ if(e.key==='Escape') document.querySelectorAll('.modal').forEach(m=>closeModal(m)); });
   document.querySelectorAll('.modal').forEach(m=> m.addEventListener('click', e=>{ if(e.target===m) closeModal(m); }));
 
-  // ---------- forms ----------
+  
   async function setupPinjamForm(){
     const cariInput = document.getElementById('pinjam-cari');
     const bukuList = document.getElementById('pinjam-buku-list');
@@ -197,7 +204,7 @@ document.addEventListener('DOMContentLoaded', function(){
     const bukuSelected = document.getElementById('pinjam-buku-selected');
     let allBooks = [];
 
-    // Load books on form open
+    
     allBooks = await fetchAvailableBooks();
 
     cariInput.addEventListener('input', ()=>{
@@ -238,7 +245,6 @@ document.addEventListener('DOMContentLoaded', function(){
       });
     });
 
-    // Clear selection when clicking input again
     cariInput.addEventListener('focus', ()=>{
       if(bukuIdHidden.value){
         bukuIdHidden.value = '';
@@ -255,15 +261,12 @@ document.addEventListener('DOMContentLoaded', function(){
     const pinjamSelected = document.getElementById('kembali-pinjam-selected');
     let userLoans = [];
 
-    // Ensure user is logged in
     if(!currentUser){
       showToast('Silakan login terlebih dahulu','error');
       return;
     }
 
-    // Load loans on form open
     const loans = await fetchActiveLoans();
-    // normalize id types and filter for current user
     userLoans = loans.filter(l => String(l.anggota_id) === String(currentUser.id));
 
     function renderPinjamItems(list){
@@ -287,14 +290,13 @@ document.addEventListener('DOMContentLoaded', function(){
           document.getElementById('pinjam-detail-text').textContent = text;
           document.getElementById('pinjam-detail-info').style.display = 'block';
 
-          // Store data for denda calculation
+         
           document.querySelector('#kembali-tanggal').dataset.kembaliDirencanakan = l.tanggal_kembali_direncanakan;
         });
         pinjamList.appendChild(li);
       });
     }
 
-    // Show all user loans immediately (so user can pick without typing)
     renderPinjamItems(userLoans.slice(0, 12));
 
     cariInput.addEventListener('input', ()=>{
@@ -303,14 +305,12 @@ document.addEventListener('DOMContentLoaded', function(){
       renderPinjamItems(filtered.slice(0, 8));
     });
 
-    // Clear selection when clicking input again
     cariInput.addEventListener('focus', ()=>{
       if(pinjamIdHidden.value){
         pinjamIdHidden.value = '';
         pinjamSelected.style.display = 'none';
         document.getElementById('pinjam-detail-info').style.display = 'none';
       } else {
-        // if no selection, show list
         renderPinjamItems(userLoans.slice(0,12));
       }
     });
@@ -323,7 +323,6 @@ document.addEventListener('DOMContentLoaded', function(){
     const tanggalKembali = document.getElementById('kembali-tanggal').value;
     if(!pinjamIdHidden.value || !tanggalKembali) return;
     
-    // Get stored tanggal_kembali_direncanakan
     const kembaliDirencanakan = new Date(document.querySelector('#kembali-tanggal').dataset.kembaliDirencanakan);
     const tanggalKembaliDate = new Date(tanggalKembali);
     const daysLate = Math.max(0, Math.floor((tanggalKembaliDate - kembaliDirencanakan) / (1000*60*60*24)));
@@ -354,25 +353,23 @@ document.addEventListener('DOMContentLoaded', function(){
     showToast(`Buku dikembalikan${data.denda>0?` | Denda: Rp ${data.denda.toLocaleString('id-ID')}`:''}`, data.denda>0?'':'success'); e.target.reset(); closeModal(modalKembali); renderBooks('');
   });
 
-  // ---------- login flow ----------
+  // ---------- login ----------
   document.getElementById('form-pengunjung').addEventListener('submit', async function(e){
     e.preventDefault();
     const nama = (document.getElementById('pengunjung-nama').value||'').trim();
     const kelas = (document.getElementById('pengunjung-kelas').value||'').trim();
     if(!nama){ showToast('Nama wajib diisi','error'); return; }
     
-    // Check if anggota already exists
     const visitors = await fetchVisitors();
     let user = visitors.find(v => v.nama.toLowerCase() === nama.toLowerCase());
     
     if(!user){
-      // Create new anggota
       const id = await addVisitorAPI({nama, kelas});
       if(!id) return;
       user = {id, nama, kelas};
     }
     
-    // Set currentUser and persist to localStorage
+
     currentUser = user;
     try { localStorage.setItem('currentUser', JSON.stringify(user)); } catch(e) { /* ignore */ }
     showMenuSection(user);
@@ -386,14 +383,11 @@ document.addEventListener('DOMContentLoaded', function(){
     const ok = await addBookAPI(book); if(ok){ e.target.reset(); closeModal(modalBuku); renderBooks(searchInput.value); }
   });
 
-  // ---------- search ----------
   let searchTimeout;
   searchInput.addEventListener('input', ()=>{ clearTimeout(searchTimeout); searchTimeout = setTimeout(()=> renderBooks(searchInput.value), 300); });
   searchBtn.addEventListener('click', ()=> renderBooks(searchInput.value));
 
-  // Theme toggle
   document.getElementById('theme-toggle').addEventListener('click', function(){ const isDark = document.body.getAttribute('data-theme') === 'dark'; if(isDark){ document.body.removeAttribute('data-theme'); this.querySelector('i').className='fas fa-moon'; localStorage.setItem('theme','light'); } else { document.body.setAttribute('data-theme','dark'); this.querySelector('i').className='fas fa-sun'; localStorage.setItem('theme','dark'); } });
 
-  // initial render
   renderBooks(''); renderVisitors();
 });

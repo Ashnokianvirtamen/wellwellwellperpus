@@ -9,9 +9,9 @@ const port = process.env.PORT || 3000;
 // Middleware
 app.use(cors());
 app.use(express.json());
-app.use(express.static('.')); // Serve static files from current directory
+app.use(express.static('.'));
 
-// Database setup
+// setup database
 const db = new sqlite3.Database('library.db', (err) => {
   if (err) {
     console.error('Error connecting to database:', err);
@@ -32,7 +32,8 @@ function initDatabase() {
       penerbit TEXT,
       tahun INTEGER,
       tanggal_masuk DATE,
-      status TEXT DEFAULT 'tersedia' CHECK(status IN ('tersedia', 'dipinjam'))
+      status TEXT DEFAULT 'tersedia' CHECK(status IN ('tersedia', 'dipinjam')),
+      approved INTEGER DEFAULT 1
     )`);
 
     // Pengunjung
@@ -57,14 +58,29 @@ function initDatabase() {
       FOREIGN KEY (buku_id) REFERENCES buku (id),
       FOREIGN KEY (anggota_id) REFERENCES anggota (id)
     );`);
+
+    db.all("PRAGMA table_info(buku)", (err, cols) => {
+      if (err) {
+        console.error('Failed to check buku columns for migration:', err);
+        return;
+      }
+      const hasApproved = Array.isArray(cols) && cols.some(c => c && c.name === 'approved');
+      if (!hasApproved) {
+        console.log('Migrating DB: adding `approved` column to buku');
+        db.run("ALTER TABLE buku ADD COLUMN approved INTEGER DEFAULT 1", (alterErr) => {
+          if (alterErr) console.error('Failed to add approved column:', alterErr);
+          else console.log('Migration complete: added `approved` column to buku');
+        });
+      }
+    });
   });
 }
 
 // API
-// Get available books only
+// Get buku tersedia
 app.get('/api/buku-tersedia', (req, res) => {
   db.all(
-    "SELECT * FROM buku WHERE status = 'tersedia' ORDER BY kode",
+    "SELECT * FROM buku WHERE status = 'tersedia' AND approved = 1 ORDER BY kode",
     (err, rows) => {
       if (err) {
         res.status(500).json({ error: err.message });
@@ -75,7 +91,7 @@ app.get('/api/buku-tersedia', (req, res) => {
   );
 });
 
-// Get active loans (not yet returned)
+// Get peminjaman aktif
 app.get('/api/peminjaman-aktif', (req, res) => {
   db.all(
     `SELECT p.*, b.kode, b.judul, b.penerbit, b.tahun, a.nama as peminjam
@@ -96,12 +112,11 @@ app.get('/api/peminjaman-aktif', (req, res) => {
 
 app.get('/api/buku', (req, res) => {
   const query = req.query.q || '';
+  // hanya tampilkan semua buku jika admin=1
+  const adminView = req.query.admin === '1';
+  const baseSql = `SELECT * FROM buku WHERE (kode LIKE ? OR judul LIKE ? OR penerbit LIKE ?) ${adminView ? '' : 'AND approved = 1'} ORDER BY tanggal_masuk DESC`;
   db.all(
-    `SELECT * FROM buku WHERE 
-     kode LIKE ? OR 
-     judul LIKE ? OR 
-     penerbit LIKE ? 
-     ORDER BY tanggal_masuk DESC`,
+    baseSql,
     [`%${query}%`, `%${query}%`, `%${query}%`],
     (err, rows) => {
       if (err) {
@@ -119,11 +134,11 @@ app.post('/api/buku', (req, res) => {
     res.status(400).json({ error: 'Kode dan judul wajib diisi' });
     return;
   }
-
+  const approved = req.query.admin === '1' ? 1 : 0;
   db.run(
-    `INSERT INTO buku (kode, judul, penerbit, tahun, tanggal_masuk) 
-     VALUES (?, ?, ?, ?, ?)`,
-    [kode, judul, penerbit, tahun, tanggal_masuk],
+    `INSERT INTO buku (kode, judul, penerbit, tahun, tanggal_masuk, approved) 
+     VALUES (?, ?, ?, ?, ?, ?)`,
+    [kode, judul, penerbit, tahun, tanggal_masuk, approved],
     function(err) {
       if (err) {
         if (err.message.includes('UNIQUE constraint failed')) {
@@ -133,9 +148,69 @@ app.post('/api/buku', (req, res) => {
         }
         return;
       }
-      res.json({ id: this.lastID, message: 'Buku berhasil ditambahkan' });
+      const msg = approved ? 'Buku berhasil ditambahkan' : 'Buku dikirim untuk persetujuan admin';
+      res.json({ id: this.lastID, message: msg });
     }
   );
+});
+
+// list buku pending approval
+app.get('/api/buku-pending', (req, res) => {
+  db.all(
+    "SELECT * FROM buku WHERE approved = 0 ORDER BY tanggal_masuk DESC",
+    (err, rows) => {
+      if (err) { res.status(500).json({ error: err.message }); return; }
+      res.json(rows);
+    }
+  );
+});
+
+// setujui buku
+app.post('/api/buku/:id/approve', (req, res) => {
+  const id = req.params.id;
+  db.run('UPDATE buku SET approved = 1 WHERE id = ?', [id], function(err){
+    if (err) return res.status(500).json({ error: err.message });
+    res.json({ message: 'Buku disetujui', id });
+  });
+});
+
+// Update buku
+app.put('/api/buku/:id', (req, res) => {
+  const id = req.params.id;
+  const { kode, judul, penerbit, tahun, tanggal_masuk, approved } = req.body;
+  const fields = [];
+  const values = [];
+  if (kode !== undefined) { fields.push('kode = ?'); values.push(kode); }
+  if (judul !== undefined) { fields.push('judul = ?'); values.push(judul); }
+  if (penerbit !== undefined) { fields.push('penerbit = ?'); values.push(penerbit); }
+  if (tahun !== undefined) { fields.push('tahun = ?'); values.push(tahun); }
+  if (tanggal_masuk !== undefined) { fields.push('tanggal_masuk = ?'); values.push(tanggal_masuk); }
+  if (approved !== undefined) { fields.push('approved = ?'); values.push(approved ? 1 : 0); }
+
+  if (fields.length === 0) {
+    return res.status(400).json({ error: 'No fields to update' });
+  }
+
+  values.push(id);
+  const sql = `UPDATE buku SET ${fields.join(', ')} WHERE id = ?`;
+  db.run(sql, values, function(err){
+    if (err) {
+      if (err.message && err.message.includes('UNIQUE constraint failed')) {
+        return res.status(400).json({ error: 'Kode buku sudah ada' });
+      }
+      return res.status(500).json({ error: err.message });
+    }
+    res.json({ message: 'Buku diperbarui', id });
+  });
+});
+
+// Reject buku (hapus)
+app.post('/api/buku/:id/reject', (req, res) => {
+  const id = req.params.id;
+  db.run('DELETE FROM buku WHERE id = ? AND approved = 0', [id], function(err){
+    if (err) return res.status(500).json({ error: err.message });
+    res.json({ message: 'Buku ditolak dan dihapus jika pending', id });
+  });
 });
 
 // API Pengunjung
@@ -181,14 +256,14 @@ app.post('/api/peminjaman', (req, res) => {
   }
 
   db.serialize(() => {
-    // Check if anggota exists
+    // Cek anggota tersedia
     db.get('SELECT id FROM anggota WHERE id = ?', [anggota_id], (err, anggota) => {
       if (err || !anggota) {
         res.status(404).json({ error: 'Anggota tidak ditemukan' });
         return;
       }
 
-      // Check book status
+      // cek buku tersedia
       db.get('SELECT status FROM buku WHERE id = ?', [buku_id], (err, row) => {
         if (err) {
           res.status(500).json({ error: err.message });
@@ -203,7 +278,6 @@ app.post('/api/peminjaman', (req, res) => {
           return;
         }
 
-        // Calculate planned return date
         const today = new Date();
         const plannedReturn = new Date(today.getTime() + durasi * 24 * 60 * 60 * 1000);
         const plannedReturnStr = plannedReturn.toISOString().split('T')[0];
@@ -246,7 +320,6 @@ app.post('/api/peminjaman', (req, res) => {
   });
 });
 
-    // Get active loans for a specific anggota (for debugging / frontend convenience)
     app.get('/api/anggota/:id/peminjaman-aktif', (req, res) => {
       const anggotaId = req.params.id;
       db.all(
@@ -276,7 +349,6 @@ app.post('/api/peminjaman/:id/kembali', (req, res) => {
   }
 
   db.serialize(() => {
-    // Get peminjaman details to calculate denda
     db.get(
       'SELECT buku_id, tanggal_pinjam, durasi_pinjam, tanggal_kembali_direncanakan FROM peminjaman WHERE id = ? AND status = ?',
       [id, 'dipinjam'],
@@ -290,7 +362,6 @@ app.post('/api/peminjaman/:id/kembali', (req, res) => {
           return;
         }
 
-        // Calculate denda (Rp 5000 per hari keterlambatan)
         const returnDate = new Date(tanggal_kembali);
         const plannedDate = new Date(pinjam.tanggal_kembali_direncanakan);
         const daysLate = Math.max(0, Math.floor((returnDate - plannedDate) / (1000 * 60 * 60 * 24)));
@@ -349,6 +420,33 @@ app.get('/api/peminjaman', (req, res) => {
       res.json(rows);
     }
   );
+});
+
+// hapus buku (hanya jika status tersedia)
+app.delete('/api/buku/:id', (req, res) => {
+  const id = req.params.id;
+  db.get('SELECT status FROM buku WHERE id = ?', [id], (err, row) => {
+    if (err) return res.status(500).json({ error: err.message });
+    if (!row) return res.status(404).json({ error: 'Buku tidak ditemukan' });
+    if (row.status === 'dipinjam') return res.status(400).json({ error: 'Buku sedang dipinjam, tidak bisa dihapus' });
+    db.run('DELETE FROM buku WHERE id = ?', [id], function(err2){
+      if (err2) return res.status(500).json({ error: err2.message });
+      res.json({ message: 'Buku dihapus', id });
+    });
+  });
+});
+
+// hapus anggota (hanya jika tidak ada peminjaman aktif)
+app.delete('/api/anggota/:id', (req, res) => {
+  const id = req.params.id;
+  db.get('SELECT COUNT(*) as cnt FROM peminjaman WHERE anggota_id = ? AND status = ?', [id, 'dipinjam'], (err, row) => {
+    if (err) return res.status(500).json({ error: err.message });
+    if (row && row.cnt > 0) return res.status(400).json({ error: 'Anggota memiliki peminjaman aktif, tidak bisa dihapus' });
+    db.run('DELETE FROM anggota WHERE id = ?', [id], function(err2){
+      if (err2) return res.status(500).json({ error: err2.message });
+      res.json({ message: 'Anggota dihapus', id });
+    });
+  });
 });
 
 app.listen(port, () => {
