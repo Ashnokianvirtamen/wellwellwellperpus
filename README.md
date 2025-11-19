@@ -16,22 +16,25 @@ Sistem manajemen perpustakaan dengan frontend modern dan backend Node.js + SQLit
 
 ## Setup & Menjalankan
 
-1. Install dependencies:
+1. Install modul:
 ```bash
 npm install
 ```
 
 2. Jalankan server:
 ```bash
-# Development mode dengan auto-reload
+#########
+node server.js
+
+# Development mode
 npm run dev
 
 # Production mode
 npm start
 ```
 
-3. Buka aplikasi:
-- Buka browser dan akses `http://localhost:3000`
+3. Buka browser:
+- Akses `http://localhost:3000`
 - Database SQLite (`library.db`) akan dibuat otomatis
 
 ## Struktur Database
@@ -121,3 +124,8 @@ npm start
 - Login tersimpan dalam localStorage browser
 - Reload halaman → tetap login tanpa perlu masuk ulang
 - Logout → hapus login dari localStorage dan kembali ke form login
+<<<<<<< HEAD
+=======
+
+
+>>>>>>> deb192e1fa973c6dfa469c70c786351ce1b9a143
